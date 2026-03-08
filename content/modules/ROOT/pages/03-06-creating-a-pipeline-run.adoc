@@ -35,7 +35,7 @@ servicenow_incidents
 [.console-input]
 [source,text]
 ----
-vectordb-milvus.{user}.svc.cluster.local
+vectordb-milvus.milvus.svc.cluster.local
 ----
 
 * `milvus_port`: The gRPC port for the Milvus database.

@@ -57,7 +57,7 @@ embedding_model = HuggingFaceEmbeddings(
 # 2. Connect to the existing Milvus collection, specifying the vector and text fields.
 vector_db = Milvus(
     embedding_function=embedding_model,
-    connection_args={"host": "vectordb-milvus", "port": "19530"},
+    connection_args={"host": "vectordb-milvus.milvus.svc.cluster.local", "port": "19530"},
     collection_name="servicenow_incidents",
     vector_field="embedding",
     text_field="resolution_notes"
