@@ -27,6 +27,12 @@ antora:
   extensions:
     - require: ./content/lib/dev-mode.js
       enabled: false
+    - id: ai-assistant-build
+      require: ./content/lib/ai-assistant-build.js
+      enabled: true
+    - id: rag-export
+      require: ./content/lib/rag-export.js
+      enabled: true
 
 output:
   dir: ./www
