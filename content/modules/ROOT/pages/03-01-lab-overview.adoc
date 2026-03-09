@@ -1,9 +1,9 @@
-= 3.1 Lab Overview & Setup
+= Lab Overview & Setup
 include::_attributes.adoc[]
 
 Now it's your turn to get hands-on. In this lab, you will deploy the mock ServiceNow API and the Kubeflow Pipeline that ingests its data into our Milvus vector database.
 
-To ensure you can get started quickly, we have pre-created a Data Science Project for you and deployed some of the necessary components. This section will guide you through connecting to the environment, exploring your project, and running a simple test against the Large Language Model (LLM) provided for this workshop.
+To ensure you can get started quickly, we have pre-created a project for you and deployed some of the necessary components. This section will guide you through connecting to the environment, exploring your project, and running a simple test against the Large Language Model (LLM) provided for this workshop.
 
 == Getting Connected
 
@@ -16,116 +16,176 @@ For this workshop, we have provisioned a shared {ocp} cluster with {rhoai} deplo
 If you are viewing these instructions in the deployed lab environment, the values below will be correctly rendered for you. If viewing from a static source like GitHub, placeholder values will appear.
 ====
 
-* Your account ID: `{user}`
-* Your password: `{password}`
-
-In a new browser window or tab, open the following URL to access the {rhoai} Dashboard:
-
-* **{rhoai} Dashboard URL:** https://rhods-dashboard-redhat-ods-applications.{openshift_cluster_ingress_domain}/[https://rhods-dashboard-redhat-ods-applications.{openshift_cluster_ingress_domain}/,window=_blank]
+.Lab Environment Access
+[cols="1,2"]
+|===
+|Account ID |`{user}`
+|Password |`{password}`
+|{rhoai} Dashboard |https://rhods-dashboard-redhat-ods-applications.{openshift_cluster_ingress_domain}/[Dashboard^]
+|===
 
 === Login Procedure
 
-1.  Click the *Login with OpenShift* button.
-
+. Click the *Login with OpenShift* button at the https://rhods-dashboard-redhat-ods-applications.{openshift_cluster_ingress_domain}/[OpenShift AI Dashboard^].
++
 [.bordershadow]
-image::03/login-with-openshift.png[The main login screen for Red Hat OpenShift AI.]
+image::03/login-with-openshift.png[The main login screen for Red Hat OpenShift AI]
 
-2.  Enter your user credentials (`{user}` and `{password}`) provided above.
+. Enter your user credentials (`{user}` and `{password}`) provided above.
++
+[NOTE]
+====
+Your browser might display a security warning. It is safe to ignore this message for the lab environment.
+====
 
-Your browser might display a warning. It is safe to ignore this message for the lab.
-
-3.  After you authenticate, you will land on the OpenShift AI dashboard.
-
+. After you authenticate, you will land on the OpenShift AI dashboard.
++
 [.bordershadow]
-image::03/rhoai-dashboard-main.png[The main dashboard of Red Hat OpenShift AI after logging in.]
+image::03/rhoai-dashboard-main.png[The main dashboard of Red Hat OpenShift AI after logging in]
 
 Congratulations, you are now connected!
 
 == Reviewing Your Pre-Created Project
 
-A Data Science Project has been pre-created for you. Let's take a quick tour.
+A project has been pre-created for you. Let's take a quick tour.
 
-1.  In the {rhoai} Dashboard, navigate to *Data Science Projects* using the menu on the left.
-
+. In the {rhoai} Dashboard, navigate to the *Projects* area and select the default *Workspace* that's been created.
++
 [.bordershadow]
-image::03/ds-projects-nav.png[Navigating to the Data Science Projects section.]
+image::03/open-project.png[Opening your dedicated user project]
 
-2.  Click on the project name that matches your user ID: *{user}*.
-
+. Inside your project, you will find a pre-configured Jupyter *Workbench* to perform model testing. Later, you'll setup a *Pipeline* and store data in the *Cluster storage*.
++
 [.bordershadow]
-image::03/open-project.png[Opening your dedicated user project.]
+image::03/default-project.png[Your dedicated user project home showing available components]
++
+.Project Components Overview
+[cols="1,3"]
+|===
+|Component |Purpose
 
-3.  Inside your project, you will find several components have already been configured for you, including a Jupyter Workbench, a Pipeline Server, and a running Milvus database.
+|Workbench
+|Jupyter environment for model testing and development
 
-4.  To see the running pods for these services, you need to switch to the main OpenShift Console. In the top right corner of the dashboard, click on the *Quick links* (grid icon) and select *OpenShift Console*. This will open the console in a new browser tab.
+|Pipeline
+|Data ingestion and processing workflows (to be configured)
 
+|Cluster Storage
+|Persistent storage for data and models
+|===
+
+. These resources are all cloud-native, and to see the running pods for these services, you need to switch to the main OpenShift Console. In the top right corner of the dashboard, select the *Quick links* (grid icon) and click *OpenShift Console*. This will open the console in a new browser tab.
++
 [.bordershadow]
-image::03/openshift-console-link.png[Opening the OpenShift Console from the Quick Links menu.]
+image::03/openshift-console-link.png[Opening the OpenShift Console from the Quick Links menu]
 
-5.  In the new tab, ensure you are in the *Developer* perspective and that your project, `{user}`, is selected. In the *Topology* view, you can see all the running components.
-
+. In the new tab, from the menu on the left, navigate to the *Workloads* section, and click the *Pods* sub-menu. Here, in the `{user}` project, you can see all the running components, like the Pipeline Server, database, and other pre-configured resources.
++
 [.bordershadow]
-image::03/project-topology-view.png[OpenShift Topology view showing the deployed Milvus instance within your project.]
+image::03/project-topology-view.png[OpenShift Topology view showing the deployed Milvus instance within your project]
 
 == Interacting with a Large Language Model
 
-Before we build our RAG pipeline, let's connect to the LLM that has been deployed for this workshop and ask it a basic question. This will help you get familiar with interacting with an LLM programmatically from your pre-created Jupyter environment.
+Before we build our RAG pipeline, let's connect to the local LLM that has been deployed for this workshop and ask it a basic question. This will help you get familiar with interacting with an LLM programmatically from your pre-created Jupyter environment via an https://developers.openai.com/api/reference/overview[OpenAI-compatible API^].
 
-1.  Return to the OpenShift AI Dashboard browser tab and navigate to the *Workbenches* tab within your project.
+[IMPORTANT]
+====
+The LLM service (`granite-3-1-8b-instruct`) is already running in the cluster and accessible via internal Kubernetes networking. This keeps all AI interactions within our environment, free from rate limiting and without need of internet connectivity for LLM inference.
+====
 
-2.  Launch your workbench (named "My Workbench" or similar) by clicking on its name.
-
+. Return to the OpenShift AI Dashboard browser tab and navigate to the *Workbenches* tab within your project. Launch the workbench (`my-workbench`) by clicking on its name.
++
 [.bordershadow]
-image::03/launch-workbench.png[Launching the Jupyter Workbench from the OpenShift AI dashboard.]
+image::03/launch-workbench.png[Launching the Jupyter Workbench from the OpenShift AI dashboard]
 
-3.  Once JupyterLab opens, use the file browser on the left to navigate to the lab materials folder:
-
+. Once JupyterLab opens, use the file browser on the left to navigate to the lab materials folder:
++
 [.console-input]
 [source,text]
 ----
 hello-chris-rag-pipeline/lab-content/3.1
 ----
++
+[.bordershadow]
+image::03/open-filepath.png[Navigating to the lab materials folder in JupyterLab]
 
-4.  Open the notebook named `03-01-nb-llm-example.ipynb`. This notebook contains pre-written Python code to connect to and query the LLM.
+. Open the notebook named `03-01-nb-llm-example.ipynb`. This notebook contains pre-written Python code to connect to and query the LLM.
++
+[.bordershadow]
+image::03/open-notebook.png[Opening the LLM example notebook in JupyterLab]
 
-5.  Copy your API token into the `openai_api_key` variable, replace the `EMPTY` string:
-
+. Copy your API token into the `openai_api_key` variable, replacing the `EMPTY` string:
++
 [.console-input]
 [source,text,role="copypaste",subs=attributes+]
 ----
 {litellm_virtual_key}
 ----
 
-6.  *Execute the cells* in the notebook one by one. The key cells perform the following actions:
-    * *Connect to the LLM:* This cell defines the connection to the internal service for the *granite-4.0-h-tiny* model that is running in the cluster.
+. *Execute the cells* in the notebook one by one. Click the play button (▶️) next to each cell or use `Shift+Enter` to run them sequentially.
++
+[.bordershadow]
+image::03/execute-notebook-cells.png[Executing notebook cells showing the play button and cell execution flow]
++
+The key cells perform the following actions:
 
+.. *Connect to the LLM:* This cell defines the connection to the internal service for the *granite-4.0-h-tiny* model that is running in the cluster.
++
 [source,python,subs=attributes+]
 ----
 # LLM Inference Server URL
-inference_server_url = "https://litellm-prod.apps.maas.redhatworkshops.io"
+inference_server_url = "https://litellm-prod.apps.maas.redhatworkshops.io" <1>
 
 # LLM definition using a client that speaks the OpenAI API format
 llm = VLLMOpenAI(
-    openai_api_key="{litellm_virtual_key}",
-    openai_api_base=f"{inference_server_url}/v1",
-    model_name="granite-4.0-h-tiny",
+    openai_api_key="{litellm_virtual_key}", <2>
+    openai_api_base=f"{inference_server_url}/v1", <3>
+    model_name="granite-4.0-h-tiny", <4>
     # ... other parameters
 )
 ----
-    * *Define the Prompt:* This cell creates a prompt template that instructs the LLM how to behave and formats the user's question.
+<1> Internal Kubernetes service URL for the LLM inference server
+<2> Your personal API token (`{litellm_virtual_key}`) injected at runtime
+<3> OpenAI-compatible API endpoint format
+<4> Specific model identifier for the deployed Granite model
 
+.. *Define the Prompt:* This cell creates a prompt template that instructs the LLM how to behave and formats the user's question.
++
 [source,python]
 ----
 template="""<|system|>
-You are a helpful, respectful and honest assistant.
+You are a helpful, respectful and honest assistant. <1>
 <|user|>
 ### QUESTION:
-{input}
+{input} <2>
 ### ANSWER:
 <|assistant|>
 """
-prompt = PromptTemplate(input_variables=["input"], template=template)
+prompt = PromptTemplate(input_variables=["input"], template=template) <3>
 ----
-    * *Ask a Question:* The final cell defines a question and sends it to the LLM. You should see the answer streamed back directly in the notebook output.
+<1> System message defining the assistant's behavior
+<2> Placeholder for user input that will be dynamically replaced
+<3> LangChain PromptTemplate object for structured prompt formatting
 
-You have now successfully queried an LLM programmatically! With this baseline established, let's proceed to deploy the mock API that will serve as the data source for our RAG system.
+.. *Ask a Question:* The final cell defines a question and sends it to the LLM. You should see the answer streamed back directly in the notebook output.
++
+[TIP]
+====
+Watch for the cell execution indicator `[*]` which shows when a cell is running, and `[number]` when it completes successfully.
+====
+
+== Summary
+
+You have now successfully:
+
+* [x] Connected to the {rhoai} environment
+* [x] Explored your pre-configured project resources
+* [x] Launched and accessed your Jupyter workbench
+* [x] Executed Python code to query an LLM programmatically
+
+With this baseline established, you're ready to proceed to the next phase where you'll deploy the mock ServiceNow API that will serve as the data source for our RAG system.
+
+[NOTE]
+====
+The LLM connection you just tested uses the same OpenAI-compatible API pattern that you'll use throughout the workshop. This consistent interface makes it easy to integrate LLM capabilities into various components of your RAG pipeline.
+====
