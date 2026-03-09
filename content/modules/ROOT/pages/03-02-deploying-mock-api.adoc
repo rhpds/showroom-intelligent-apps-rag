@@ -78,6 +78,9 @@ Initial synchronization, ex. pulling the container image and starting the pod, t
 Once ArgoCD has applied the manifest, confirm the pod is healthy from the OpenShift Console.
 
 . In the left navigation menu, go to *Workloads* → *Pods*, and confirm you are in the `{user}` project namespace.
++
+[.bordershadow]
+image::03/mock-api-pod-running.png[OpenShift Pods view showing the mock-servicenow-api pod in Running state with 1/1 containers ready]
 
 . Wait until the `mock-servicenow-api-...` pod reports a *Running* status with `1/1` containers ready.
 +

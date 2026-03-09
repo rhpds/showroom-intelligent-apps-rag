@@ -1,7 +1,9 @@
+= 1.3 Proposed RAG Architecture
+include::_attributes.adoc[]
+
 To solve the knowledge gap problem at {company-name}, our team has proposed building a modern, AI-powered solution based on a *Retrieval-Augmented Generation (RAG)* architecture.
 
 == The Core Idea
-:slide:
 
 Instead of relying on an LLM's general, pre-trained knowledge, a RAG system augments the model by providing it with specific, relevant information retrieved from our own private data sources.
 

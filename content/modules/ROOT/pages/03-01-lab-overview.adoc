@@ -74,12 +74,12 @@ image::03/default-project.png[Your dedicated user project home showing available
 |Persistent storage for data and models
 |===
 
-. These resources are all cloud-native, and to see the running pods for these services, you need to switch to the main OpenShift Console. In the top right corner of the dashboard, select the *Quick links* (grid icon) and click *OpenShift Console*. This will open the console in a new browser tab.
+. These resources are all cloud-native, and to see the running pods for these services, you need to switch to the main OpenShift Console. In the hand side of your page, select the *OpenShift Console* tab.
 +
 [.bordershadow]
 image::03/openshift-console-link.png[Opening the OpenShift Console from the Quick Links menu]
 
-. In the new tab, from the menu on the left, navigate to the *Workloads* section, and click the *Pods* sub-menu. Here, in the `{user}` project, you can see all the running components, like the Pipeline Server, database, and other pre-configured resources.
+. Now, using the left-hand menu, navigate to the *Workloads* section, and click the *Pods* sub-menu. Here, in the `{user}` project, you can see all the running components, like the Pipeline Server, database, and other pre-configured resources.
 +
 [.bordershadow]
 image::03/project-topology-view.png[OpenShift Topology view showing the deployed Milvus instance within your project]

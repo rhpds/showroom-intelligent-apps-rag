@@ -1,10 +1,9 @@
 = 1.2 The Knowledge Gap
 include::_attributes.adoc[]
 
-To make this {ic-lab} more realistic, we will frame it within a common enterprise scenario.
+To make this {ic-lab} more realistic, we will frame it within a common enterprise scenario that can greatly benefit from the usage of private, local LLMs.
 
 == The Situation
-:slide:
 
 * We all work for *"{company-name}"*, a large multinational company with a busy IT Help Desk.
 * The company uses *ServiceNow* as its IT Service Management (ITSM) platform.

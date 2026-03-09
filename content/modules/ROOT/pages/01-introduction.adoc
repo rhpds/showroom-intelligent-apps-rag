@@ -1,7 +1,7 @@
 = 1.1 Introduction to the Parasol RAG Workshop
 include::_attributes.adoc[]
 
-Welcome to the {company-name} AI Workshop! Over the next 90 minutes, we will explore how to build a powerful, event-driven https://www.redhat.com/en/topics/ai/what-is-retrieval-augmented-generation[Retrieval-Augmented Generation (RAG)] system on Red Hat OpenShift AI. This lab demonstrates how to leverage modern AI/ML workflows to solve a common enterprise challenge: unlocking valuable knowledge trapped in unstructured data sources like service desk tickets and technical PDF documents.
+Welcome to the {company-name} AI Workshop! During this workshop, we will explore how to build a powerful, event-driven https://www.redhat.com/en/topics/ai/what-is-retrieval-augmented-generation[Retrieval-Augmented Generation (RAG)^] system on Red Hat OpenShift AI. This lab demonstrates how to leverage modern AI/ML workflows to solve a common enterprise challenge: unlocking valuable knowledge trapped in unstructured data sources like service desk tickets and technical PDF documents.
 
 == Your Role
 

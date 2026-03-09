@@ -24,7 +24,7 @@ image::02/event-driven-pipeline-diagram.png[Architecture diagram of the event-dr
 
 The instructor will now perform the demo, and we will trace the event through each step of this process.
 
----
+'''
 
 == Step 1: Uploading a PDF to MinIO
 
@@ -51,12 +51,13 @@ The `minio-event-bridge` service receives the webhook from MinIO and immediately
 
 The instructor will run the following command to see the event appear in the topic:
 
-```bash
+[source,bash]
+----
 # This command connects to our Kafka cluster and listens to the 'minio-events' topic
 oc exec -n kafka <your-kafka-broker-pod-name> -- bin/kafka-console-consumer.sh \
     --bootstrap-server localhost:9092 \
     --topic minio-events --from-beginning --timeout-ms 15000
-```
+----
 
 The audience will see the raw JSON event from MinIO appear on the screen, confirming it has been successfully brokered by Kafka.
 
@@ -67,21 +68,27 @@ The audience will see the raw JSON event from MinIO appear on the screen, confir
 
 Now, we will see how Knative Eventing picks up the event.
 
-1.  **Knative KafkaSource:** This component is continuously polling the `minio-events` Kafka topic. The instructor will show the logs of the KafkaSource pod.
-    ```bash
-    # Get the name of the KafkaSource pod in the workshop namespace
-    oc get pods -n rag-pipeline-workshop -l eventing.knative.dev/source=minio-kafka-source
+. **Knative KafkaSource:** This component is continuously polling the `minio-events` Kafka topic. The instructor will show the logs of the KafkaSource pod.
++
+[source,bash]
+----
+# Get the name of the KafkaSource pod in the workshop namespace
+oc get pods -n rag-pipeline-workshop -l eventing.knative.dev/source=minio-kafka-source
 
-    # View the logs of the dispatcher container within that pod
-    oc logs -n rag-pipeline-workshop -l eventing.knative.dev/source=minio-kafka-source -c dispatcher -f
-    ```
-    In these logs, we will see lines indicating that a message was received from Kafka and successfully sent to its "sink" (the Knative Broker).
+# View the logs of the dispatcher container within that pod
+oc logs -n rag-pipeline-workshop -l eventing.knative.dev/source=minio-kafka-source -c dispatcher -f
+----
++
+In these logs, we will see lines indicating that a message was received from Kafka and successfully sent to its "sink" (the Knative Broker).
 
-2.  **Knative Broker & Trigger:** The Broker receives the CloudEvent (including the `bucketname` extension) and delivers it to any matching subscribers. Our `kfp-s3-trigger` service is subscribed via a Trigger. We can verify the Trigger is ready and pointing to the correct service.
-    ```bash
-    oc get trigger minio-pdf-event-trigger -n rag-pipeline-workshop -o yaml
-    ```
-    This YAML will show that the Trigger is subscribed to the `kafka-broker` and its subscriber destination is the `kfp-s3-trigger` Knative Service.
+. **Knative Broker & Trigger:** The Broker receives the CloudEvent (including the `bucketname` extension) and delivers it to any matching subscribers. Our `kfp-s3-trigger` service is subscribed via a Trigger. We can verify the Trigger is ready and pointing to the correct service.
++
+[source,bash]
+----
+oc get trigger minio-pdf-event-trigger -n rag-pipeline-workshop -o yaml
+----
++
+This YAML will show that the Trigger is subscribed to the `kafka-broker` and its subscriber destination is the `kfp-s3-trigger` Knative Service.
 
 == Step 4: The Serverless Function (`kfp-s3-trigger`)
 
@@ -96,13 +103,15 @@ This is where the **multi-user routing** happens. The `kfp-s3-trigger` service:
     * Shared bucket `pdf-inbox` → the default `KFP_ENDPOINT` (fallback)
 
 The instructor will now show the logs of this pod:
-```bash
+
+[source,bash]
+----
 # Get the name of the latest pod for the kfp-s3-trigger service
 oc get pods -n rag-pipeline-workshop -l serving.knative.dev/service=kfp-s3-trigger
 
 # Tail the logs of the user-container
 oc logs -n rag-pipeline-workshop -l serving.knative.dev/service=kfp-s3-trigger -c user-container -f
-```
+----
 
 The audience will see log entries confirming:
 

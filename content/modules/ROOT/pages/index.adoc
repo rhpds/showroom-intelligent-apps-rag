@@ -9,9 +9,9 @@ The scenario for this lab is that we all work for "{company-name}", a large comp
 
 == Disclaimer
 
-This {ic-lab} is an example of what a customer could build using {rhoai}. {rhoai} itself does not include a ServiceNow integration or a vector database out-of-the-box.
+This {ic-lab} is an example of what a developer could build using {rhoai}. {rhoai} itself does not include a ServiceNow integration or a vector database out-of-the-box.
 
-This {ic-lab} makes use of a Large Language Model (LLM), the https://github.com/DS4SD/docling[`docling`^] document parsing library, and the https://milvus.io/[Milvus^] vector database. These models and third-party tools are not included in the {rhoai} product. They are provided as a convenience for this {ic-lab}.
+This {ic-lab} makes use of a Large Language Model (LLM), the https://github.com/DS4SD/docling[`docling`^] document parsing library, and the https://milvus.io/[Milvus^] vector database. These models and third-party tools are not included in the {rhoai} product. They are provided as a convenience for this {ic-lab} and as a learning experience.
 
 NOTE: The quality of the models and the architecture are suitable for a prototype. Choosing the right components for a production environment is a complex task that requires significant experimentation and tuning. This {ic-lab} does not cover production-level architecture design.
 
@@ -41,8 +41,8 @@ a|- *Lab Setup:* Attendees log in and explore their pre-created OpenShift AI pro
 
 == Resources
 
-* https://red.ht/intelligent-apps[Presentation Slides: Intelligent Applications^]
+* https://red.ht/intelligent-apps[Building Intelligent Apps with RAG on Kubernetes: From Raw Data to Real-Time Insights^]
 
 == Contributing
 
-If you are interested in contributing to this project, consult this GitHub Repo: https://github.com/cnuland/hello-chris-rag-pipeline[https://github.com/cnuland/hello-chris-rag-pipeline,window=_blank]
+If you are interested in contributing to this project, consult this GitHub Repo: https://github.com/rhpds/showroom-intelligent-apps-rag[https://github.com/rhpds/showroom-intelligent-apps-rag,window=_blank]
