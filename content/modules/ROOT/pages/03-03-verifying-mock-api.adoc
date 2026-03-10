@@ -1,52 +1,96 @@
 = 3.3 Verifying the Mock API
 include::_attributes.adoc[]
 
-Now that ArgoCD has successfully deployed the mock API application, let's perform a few tests to ensure it's running and serving data correctly. We will use the built-in OpenShift command line terminal, which provides a convenient way to interact with our project without leaving the web console.
+With the mock API deployed, you will now send HTTP requests to two of its endpoints to confirm the service is reachable and returning data correctly.
+You will use the *OpenShift Web Terminal* — a browser-based shell that is already authenticated to your cluster and scoped to your project namespace — with no local tooling required.
+
+[NOTE]
+====
+The mock API is exposed *internally* within the cluster via a Kubernetes `Service` named `mock-servicenow-api-svc` on port `8080`.
+It is not reachable from outside the cluster; the Web Terminal provides an in-cluster shell from which the service DNS name resolves correctly.
+====
 
 == Accessing the OpenShift Web Terminal
 
-1.  In the OpenShift web console, make sure you are in the *Developer* perspective and have your project (`{user}`) selected.
+. Click the *terminal* icon (*>_*) in the top-right corner of the OpenShift web console toolbar.
+An *OpenShift command line terminal* panel opens at the bottom of the page, showing an *Initialize terminal* dialog.
 
-2.  If you have closed it, open the command line terminal by clicking the terminal icon in the top-right corner of the page.
+. In the *Project* dropdown, confirm your project (`{user}`) is selected.
 
+. Click *Start*.
++
 [.bordershadow]
-image::03/openshift-web-terminal.png[Opening the OpenShift command line terminal from the UI.]
-
-3.  A new browser tab will open with a terminal session already logged into your OpenShift account and pointing to your project.
+image::03/openshift-web-terminal-init.png[The OpenShift Web Terminal initialization panel showing the project selector set to user1 and the Start button]
++
+The terminal initializes and provides a shell session already authenticated to your cluster and scoped to your project namespace.
++
+[.bordershadow]
+image::03/openshift-web-terminal-ready.png[The OpenShift Web Terminal panel open and ready with an active shell prompt]
 
 == Testing the API Endpoints
 
-We will now send requests to two of the API's endpoints: `/api/v1/health` for a simple status check, and `/api/v1/incidents` to retrieve sample data. The API is exposed internally via a Kubernetes Service named `mock-api` on port `8080`.
+You will probe two endpoints to validate the service:
 
-1.  *Perform a Health Check:* In the OpenShift terminal, run the following command to check the health endpoint.
+[cols="1,2,3",options="header"]
+|===
+| Endpoint | Path | Purpose
 
+| Health check
+| `/api/v1/health`
+| Confirms the API process is up and accepting connections
+
+| Incident data
+| `/api/v1/incidents`
+| Returns mock ITSM ticket records — the same data your pipeline will ingest
+|===
+
+=== Health Check
+
+Run the following command in the OpenShift Web Terminal to query the health endpoint.
+
+.Health check request
 [.console-input]
 [source,bash,role="copypaste",subs=attributes+]
 ----
-curl http://mock-servicenow-api-svc.{user}.svc.cluster.local:8080/api/v1/health
+curl http://mock-servicenow-api-svc.{user}.svc.cluster.local:8080/api/v1/health <1> <2>
 ----
+<1> `{user}` is your project namespace. The full hostname follows the Kubernetes internal DNS pattern: `<service>.<namespace>.svc.cluster.local`.
+<2> Port `8080` is the port declared on the Kubernetes `Service` resource, as defined in the Kustomize overlay you deployed.
 
-You should see the following JSON output, indicating that the API is up and running:
+You should see the following JSON response, confirming the API is up and running:
 
+.Health check response
 [.console-output]
 [source,json]
 ----
 {"status":"UP"}
 ----
 
-2.  *Fetch Incident Data:* Now, let's query the main data endpoint to see the mock ticket data. This is the same endpoint our pipeline will use. We'll ask for two "closed" incidents and pipe the output to the `jq` utility to format it nicely.
+[TIP]
+====
+If the command hangs or returns a connection error, the pod may still be initializing.
+Wait 30 seconds and re-run the command, then verify the `mock-servicenow-api-...` pod shows a *Running* status under *Workloads* → *Pods*.
+====
 
+=== Fetching Incident Data
+
+Query the incidents endpoint, filtering for closed tickets and limiting the response to two records.
+The output is piped through `jq` to pretty-print the JSON structure.
+
+.Fetch closed incidents
 [.console-input]
 [source,bash,role="copypaste",subs=attributes+]
 ----
-curl 'http://mock-servicenow-api-svc.{user}.svc.cluster.local:8080/api/v1/incidents?state=closed&limit=2' | jq
+curl 'http://mock-servicenow-api-svc.{user}.svc.cluster.local:8080/api/v1/incidents?state=closed&limit=2' | jq <1>
 ----
+<1> `state=closed` and `limit=2` are query parameters accepted by the mock API. Your Kubeflow Pipeline will call this same endpoint — without the `limit` parameter — to retrieve all closed incidents for embedding and ingestion into Milvus.
 
-3.  The output should be a well-formatted JSON object containing a `result` array with two incident records, similar to the example below.
+The response should be a JSON object with a `result` array containing two incident records, along with pagination metadata.
 
 [.bordershadow]
-image::03/api-incidents-check-success.png[Successful output of the curl command showing formatted JSON incident data.]
+image::03/api-incidents-check-success.png[Terminal output showing a formatted JSON response from the incidents endpoint]
 
+.Incident data response
 [.console-output]
 [source,json]
 ----
@@ -97,4 +141,12 @@ image::03/api-incidents-check-success.png[Successful output of the curl command 
 }
 ----
 
-If you see this output, it confirms that the mock API is fully functional. We are now ready to deploy the Milvus database.
+[NOTE]
+====
+Notice the `total_records: 5` field in the response.
+The mock dataset contains five closed incidents in total; the `limit=2` parameter restricted this response to two.
+When your pipeline runs, it will retrieve all five records for embedding and ingestion into the Milvus vector database.
+====
+
+With both endpoints confirmed, the mock API is fully operational.
+You are now ready to deploy the Milvus vector database.

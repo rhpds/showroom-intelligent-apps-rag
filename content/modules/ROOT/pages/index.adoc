@@ -41,7 +41,7 @@ a|- *Lab Setup:* Attendees log in and explore their pre-created OpenShift AI pro
 
 == Resources
 
-* https://red.ht/intelligent-apps[Building Intelligent Apps with RAG on Kubernetes: From Raw Data to Real-Time Insights^]
+* https://red.ht/intelligent-apps[Slides: Building Intelligent Apps with RAG on Kubernetes: From Raw Data to Real-Time Insights^]
 
 == Contributing
 
