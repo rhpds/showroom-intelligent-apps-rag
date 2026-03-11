@@ -3,7 +3,7 @@ name: Build and Push Container
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [ai_assistant]
     paths:
       - 'backend/**'
       - 'config/**'
