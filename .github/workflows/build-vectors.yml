@@ -1,5 +1,6 @@
 name: Build Vector Embeddings
 
+
 on:
   push:
     branches:
