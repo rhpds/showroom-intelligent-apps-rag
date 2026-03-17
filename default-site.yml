@@ -21,7 +21,7 @@ runtime:
 antora:
   extensions:
     - require: ./content/lib/dev-mode.js
-      enabled: true
+      enabled: false
     - id: ai-assistant-build
       require: ./content/lib/ai-assistant-build.js
       enabled: true
