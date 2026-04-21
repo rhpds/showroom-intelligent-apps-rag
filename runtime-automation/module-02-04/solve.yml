@@ -1,0 +1,81 @@
+---
+# SOLVE — 2.4 Deploying the Milvus Vector Database
+# Task 1: Create ArgoCD Application for Milvus
+# Task 2: Wait for vectordb-milvus-standalone and vectordb-etcd pods
+
+- name: Module 02-04 Solve — Deploy Milvus
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ns: "{{ user }}"
+  tasks:
+
+    # ── Task 1: Create ArgoCD Application ──────────────────────────────────────
+    - name: Apply ArgoCD Application for Milvus
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig | default(omit) }}"
+        validate_certs: false
+        state: present
+        definition:
+          apiVersion: argoproj.io/v1alpha1
+          kind: Application
+          metadata:
+            name: "{{ user }}-milvus"
+            namespace: openshift-gitops
+          spec:
+            project: default
+            source:
+              repoURL: 'https://github.com/cnuland/hello-chris-rag-pipeline.git'
+              path: services/milvus
+              targetRevision: main
+              kustomize: {}
+            destination:
+              server: https://kubernetes.default.svc
+              namespace: "{{ ns }}"
+            syncPolicy:
+              automated:
+                prune: true
+                selfHeal: true
+              syncOptions:
+                - CreateNamespace=true
+                - ServerSideApply=true
+
+    # ── Task 2: Wait for Milvus deployment to be ready ─────────────────────────
+    - name: Wait for vectordb-milvus-standalone deployment
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ k8s_kubeconfig | default(omit) }}"
+        validate_certs: false
+        api_version: apps/v1
+        kind: Deployment
+        name: vectordb-milvus-standalone
+        namespace: "{{ ns }}"
+      register: r_milvus_deploy
+      until: >-
+        r_milvus_deploy.resources | length > 0 and
+        (r_milvus_deploy.resources[0].status.readyReplicas | default(0) | int) >= 1
+      retries: 36
+      delay: 5
+
+    - name: Wait for vectordb-etcd StatefulSet
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ k8s_kubeconfig | default(omit) }}"
+        validate_certs: false
+        api_version: apps/v1
+        kind: StatefulSet
+        name: vectordb-etcd
+        namespace: "{{ ns }}"
+      register: r_etcd_sts
+      until: >-
+        r_etcd_sts.resources | length > 0 and
+        (r_etcd_sts.resources[0].status.readyReplicas | default(0) | int) >= 1
+      retries: 36
+      delay: 5
+
+    # ── Report ─────────────────────────────────────────────────────────────────
+    - name: Report solve status
+      ansible.builtin.debug:
+        msg: |
+          ArgoCD Application {{ user }}-milvus: created
+          vectordb-milvus-standalone: {{ 'ready' if (r_milvus_deploy.resources | length > 0 and r_milvus_deploy.resources[0].status.readyReplicas | default(0) | int >= 1) else 'NOT ready' }}
+          vectordb-etcd: {{ 'ready' if (r_etcd_sts.resources | length > 0 and r_etcd_sts.resources[0].status.readyReplicas | default(0) | int >= 1) else 'NOT ready' }}

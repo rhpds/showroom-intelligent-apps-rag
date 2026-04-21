@@ -1,0 +1,69 @@
+---
+# VALIDATE — 2.2 Deploying the Mock ServiceNow API
+# Task 1: ArgoCD Application exists for mock-api
+# Task 2: mock-servicenow-api Deployment is ready
+
+- name: Module 02-02 Validation — Mock API Deployed
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ns: "{{ user }}"
+  tasks:
+
+    # ── Check 1: ArgoCD Application exists ─────────────────────────────────────
+    - name: Get ArgoCD Application for mock-api
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ k8s_kubeconfig | default(omit) }}"
+        validate_certs: false
+        api_version: argoproj.io/v1alpha1
+        kind: Application
+        name: "{{ user }}-mock-api"
+        namespace: openshift-gitops
+      register: r_argo_app
+      ignore_errors: true
+
+    # ── Check 2: mock-servicenow-api Deployment is ready ───────────────────────
+    - name: Get mock-servicenow-api Deployment
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ k8s_kubeconfig | default(omit) }}"
+        validate_certs: false
+        api_version: apps/v1
+        kind: Deployment
+        name: mock-servicenow-api
+        namespace: "{{ ns }}"
+      register: r_mock_api_deploy
+      ignore_errors: true
+
+    # ── Functional test: Health endpoint ───────────────────────────────────────
+    - name: "Functional test: Check mock API health via oc exec"
+      ansible.builtin.shell: >-
+        oc --kubeconfig={{ k8s_kubeconfig }}
+        exec deploy/mock-servicenow-api -n {{ ns }}
+        -- curl -s http://localhost:8080/api/v1/health
+      register: r_health
+      ignore_errors: true
+
+    # ── Build results ──────────────────────────────────────────────────────────
+    - name: Build task results
+      ansible.builtin.set_fact:
+        _task1_ok: >-
+          {{ r_argo_app.resources | default([]) | length > 0 }}
+        _task2_ok: >-
+          {{ (r_mock_api_deploy.resources | default([]) | length > 0) and
+             (r_mock_api_deploy.resources[0].status.readyReplicas | default(0) | int >= 1) }}
+        _test1_ok: >-
+          {{ '"status":"UP"' in (r_health.stdout | default('')) }}
+
+    # ── Validate ───────────────────────────────────────────────────────────────
+    - name: Validate all tasks
+      validation_check:
+        check: "{{ _task1_ok and _task2_ok and _test1_ok }}"
+        pass_msg: |
+          ✅ Task 1: ArgoCD Application {{ user }}-mock-api exists
+          ✅ Task 2: mock-servicenow-api deployment is running (1/1)
+          ✅ Test 1: Health endpoint returns {"status":"UP"}
+        error_msg: |
+          {{ '✅' if _task1_ok else '❌' }} Task 1: {{ 'ArgoCD Application exists' if _task1_ok else 'ArgoCD Application ' + user + '-mock-api not found — paste the ArgoCD Application manifest in OpenShift Import YAML (+) and click Create' }}
+          {{ '✅' if _task2_ok else '❌' }} Task 2: {{ 'mock-servicenow-api running' if _task2_ok else 'mock-servicenow-api deployment not ready — wait for ArgoCD to sync (1-2 minutes)' }}
+          {{ '✅' if _test1_ok else '❌' }} Test 1: {{ 'Health endpoint OK' if _test1_ok else 'Health endpoint did not return UP — pod may still be starting' }}

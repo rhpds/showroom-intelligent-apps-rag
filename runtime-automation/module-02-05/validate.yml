@@ -1,0 +1,64 @@
+---
+# VALIDATE — 2.5 Importing the Data Science Pipeline
+# Task 1: DSPA is running
+# Task 2: Pipeline exists in DSPA (check both slug and display name)
+
+- name: Module 02-05 Validation — Pipeline Imported
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ns: "{{ user }}"
+    dspa_svc: "https://ds-pipeline-dspa.{{ user }}.svc.cluster.local:8443"
+  tasks:
+
+    # ── Check 1: DSPA is running ───────────────────────────────────────────────
+    - name: Get ds-pipeline-dspa Deployment
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ k8s_kubeconfig | default(omit) }}"
+        validate_certs: false
+        api_version: apps/v1
+        kind: Deployment
+        name: ds-pipeline-dspa
+        namespace: "{{ ns }}"
+      register: r_dspa_deploy
+      ignore_errors: true
+
+    # ── Check 2: Pipeline exists via KFP API ───────────────────────────────────
+    - name: Create SA token for pipeline access
+      ansible.builtin.shell: >-
+        oc --kubeconfig={{ k8s_kubeconfig }}
+        create token pipeline -n {{ ns }}
+      register: r_token
+      ignore_errors: true
+
+    - name: List pipelines via KFP API
+      ansible.builtin.shell: >-
+        oc --kubeconfig={{ k8s_kubeconfig }}
+        exec my-workbench-0 -n {{ ns }}
+        -c my-workbench --
+        curl -sk -H "Authorization: Bearer {{ r_token.stdout }}"
+        {{ dspa_svc }}/apis/v2beta1/pipelines
+      register: r_pipelines
+      ignore_errors: true
+
+    # ── Build results ──────────────────────────────────────────────────────────
+    - name: Build task results
+      ansible.builtin.set_fact:
+        _task1_ok: >-
+          {{ (r_dspa_deploy.resources | default([]) | length > 0) and
+             (r_dspa_deploy.resources[0].status.readyReplicas | default(0) | int >= 1) }}
+        _task2_ok: >-
+          {{ ('servicenow-ticket-ingestion' in (r_pipelines.stdout | default(''))) or
+             ('ServiceNow Ticket Ingestion' in (r_pipelines.stdout | default(''))) }}
+
+    # ── Validate ───────────────────────────────────────────────────────────────
+    - name: Validate all tasks
+      validation_check:
+        check: "{{ _task1_ok and _task2_ok }}"
+        pass_msg: |
+          ✅ Task 1: Data Science Pipelines Application (DSPA) is running
+          ✅ Task 2: Pipeline "ServiceNow Ticket Ingestion" is imported
+        error_msg: |
+          {{ '✅' if _task1_ok else '❌' }} Task 1: {{ 'DSPA running' if _task1_ok else 'ds-pipeline-dspa not ready — this should be pre-provisioned' }}
+          {{ '✅' if _task2_ok else '❌' }} Task 2: {{ 'Pipeline imported' if _task2_ok else 'Pipeline "ServiceNow Ticket Ingestion" not found — download api_to_milvus_pipeline.yaml from your workbench (hello-chris-rag-pipeline/lab-content/3.5/) and import it via the RHOAI Dashboard Pipelines section' }}

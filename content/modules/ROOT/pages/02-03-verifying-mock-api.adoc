@@ -175,6 +175,13 @@ When your pipeline runs, it will retrieve all five records for embedding and ing
 With both endpoints confirmed, the mock API is fully operational.
 You are now ready to deploy the Milvus vector database.
 
+++++
+<div class="solve-button-placeholder" data-module="module-02-03"></div>
+++++
+++++
+<div class="validate-button-placeholder" data-module="module-02-03"></div>
+++++
+
 == Summary
 
 * [x] Hit the health and incidents endpoints via `oc exec` to validate the mock API

@@ -84,6 +84,13 @@ Refresh the page after 30 seconds.
 
 With Milvus running, we now have our data source (the API) and our data destination (the vector database) ready. The next step is to import the pipeline that connects them.
 
+++++
+<div class="solve-button-placeholder" data-module="module-02-04"></div>
+++++
+++++
+<div class="validate-button-placeholder" data-module="module-02-04"></div>
+++++
+
 == Summary
 
 * [x] Deployed Milvus (standalone mode) and its etcd dependency into your namespace via a second ArgoCD `Application`

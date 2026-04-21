@@ -1,0 +1,89 @@
+---
+# SOLVE — 3.2 Tracing the Event-Driven Pipeline
+# Task 1: Upload a PDF to the user's MinIO bucket via S3 API
+# Task 2: Verify event-bridge received the event
+# Task 3: Verify Knative trigger is ready
+# Task 4: Verify kfp-s3-trigger processed the event
+#
+# The student uploads a PDF via the MinIO web console. We automate
+# this using boto3 from the workbench pod (MinIO pod lacks mc).
+
+- name: Module 03-02 Solve — Trace Event-Driven Pipeline
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ns: "{{ user }}"
+    event_ns: "rag-pipeline-workshop"
+    bucket_name: "{{ user }}-pdf-inbox"
+  tasks:
+
+    # ── Task 1: Upload PDF to MinIO via boto3 in workbench pod ─────────────────
+    - name: Upload PDF to MinIO user bucket via workbench boto3
+      ansible.builtin.shell: >-
+        oc --kubeconfig={{ k8s_kubeconfig }}
+        exec my-workbench-0 -n {{ ns }}
+        -c my-workbench --
+        python3 -c "
+        import boto3;
+        from botocore.client import Config;
+        s3 = boto3.client('s3',
+            endpoint_url='http://minio.minio.svc.cluster.local:9000',
+            aws_access_key_id='minio',
+            aws_secret_access_key='minio123',
+            config=Config(signature_version='s3v4'));
+        s3.upload_file(
+            '/opt/app-root/src/hello-chris-rag-pipeline/scripts/example.pdf',
+            '{{ bucket_name }}',
+            'example-solve.pdf');
+        print('Upload successful')
+        "
+      register: r_upload
+
+    # ── Task 2: Wait for event to propagate ────────────────────────────────────
+    - name: Wait for event to propagate through Kafka and Knative
+      ansible.builtin.pause:
+        seconds: 10
+
+    # ── Task 3: Check event-bridge logs ────────────────────────────────────────
+    - name: Check minio-event-bridge logs
+      ansible.builtin.shell: >-
+        oc --kubeconfig={{ k8s_kubeconfig }}
+        logs -n {{ event_ns }} -l app=minio-event-bridge --tail=20
+      register: r_bridge_logs
+      ignore_errors: true
+
+    - name: Display event-bridge logs
+      ansible.builtin.debug:
+        msg: "{{ r_bridge_logs.stdout_lines | default([]) | last | default('no logs') }}"
+
+    # ── Task 4: Check Knative trigger ──────────────────────────────────────────
+    - name: Check Knative trigger status
+      ansible.builtin.shell: >-
+        oc --kubeconfig={{ k8s_kubeconfig }}
+        get trigger minio-pdf-event-trigger -n {{ event_ns }}
+        -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'
+      register: r_trigger
+      ignore_errors: true
+
+    # ── Task 5: Check kfp-s3-trigger logs ──────────────────────────────────────
+    - name: Check kfp-s3-trigger logs
+      ansible.builtin.shell: >-
+        oc --kubeconfig={{ k8s_kubeconfig }}
+        logs -n {{ event_ns }}
+        -l serving.knative.dev/service=kfp-s3-trigger
+        -c user-container --tail=30
+      register: r_trigger_logs
+      ignore_errors: true
+
+    - name: Display kfp-s3-trigger logs
+      ansible.builtin.debug:
+        msg: "{{ r_trigger_logs.stdout_lines | default([]) | last | default('no logs') }}"
+
+    # ── Report ─────────────────────────────────────────────────────────────────
+    - name: Report solve status
+      ansible.builtin.debug:
+        msg: |
+          PDF upload to {{ bucket_name }}: {{ 'ok' if r_upload.rc | default(1) == 0 else 'FAILED' }}
+          Event-bridge logs: {{ 'found' if r_bridge_logs.stdout | default('') | length > 0 else 'empty' }}
+          Knative trigger ready: {{ 'True' if r_trigger.stdout | default('') == 'True' else r_trigger.stdout | default('unknown') }}

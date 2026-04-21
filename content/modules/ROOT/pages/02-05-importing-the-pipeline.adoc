@@ -82,6 +82,13 @@ image::03/pipeline-details-view.png[The pipeline details view showing the graph 
 
 With the pipeline successfully imported, we are now ready to create a run and process the data.
 
+++++
+<div class="solve-button-placeholder" data-module="module-02-05"></div>
+++++
+++++
+<div class="validate-button-placeholder" data-module="module-02-05"></div>
+++++
+
 == Summary
 
 * [x] Downloaded a compiled pipeline YAML from your workbench — a self-contained, portable definition of the two-component workflow

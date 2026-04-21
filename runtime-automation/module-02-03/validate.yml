@@ -1,0 +1,50 @@
+---
+# VALIDATE — 2.3 Verifying the Mock API
+# Task 1: Health endpoint returns {"status":"UP"}
+# Task 2: Incidents endpoint returns data with result array
+
+- name: Module 02-03 Validation — Mock API Verified
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ns: "{{ user }}"
+  tasks:
+
+    # ── Check 1: Health endpoint ───────────────────────────────────────────────
+    - name: "Check health endpoint via oc exec"
+      ansible.builtin.shell: >-
+        oc --kubeconfig={{ k8s_kubeconfig }}
+        exec deploy/mock-servicenow-api -n {{ ns }}
+        -- curl -s http://localhost:8080/api/v1/health
+      register: r_health
+      ignore_errors: true
+
+    # ── Check 2: Incidents endpoint ────────────────────────────────────────────
+    - name: "Check incidents endpoint via oc exec"
+      ansible.builtin.shell: >-
+        oc --kubeconfig={{ k8s_kubeconfig }}
+        exec deploy/mock-servicenow-api -n {{ ns }}
+        -- curl -s 'http://localhost:8080/api/v1/incidents?state=closed&limit=2'
+      register: r_incidents
+      ignore_errors: true
+
+    # ── Build results ──────────────────────────────────────────────────────────
+    - name: Build task results
+      ansible.builtin.set_fact:
+        _task1_ok: >-
+          {{ '"status":"UP"' in (r_health.stdout | default('')) }}
+        _task2_ok: >-
+          {{ '"result"' in (r_incidents.stdout | default('')) and
+             '"total_records"' in (r_incidents.stdout | default('')) }}
+
+    # ── Validate ───────────────────────────────────────────────────────────────
+    - name: Validate all tasks
+      validation_check:
+        check: "{{ _task1_ok and _task2_ok }}"
+        pass_msg: |
+          ✅ Task 1: Health endpoint returns {"status":"UP"}
+          ✅ Task 2: Incidents endpoint returns closed ticket data
+        error_msg: |
+          {{ '✅' if _task1_ok else '❌' }} Task 1: {{ 'Health endpoint OK' if _task1_ok else 'Health endpoint did not return UP — run: oc exec deploy/mock-servicenow-api -n ' + ns + ' -- curl -s http://localhost:8080/api/v1/health' }}
+          {{ '✅' if _task2_ok else '❌' }} Task 2: {{ 'Incidents endpoint OK' if _task2_ok else 'Incidents endpoint did not return data — run: oc exec deploy/mock-servicenow-api -n ' + ns + ' -- curl -s http://localhost:8080/api/v1/incidents?state=closed&limit=2' }}

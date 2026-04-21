@@ -1,0 +1,74 @@
+---
+# VALIDATE — 2.4 Deploying the Milvus Vector Database
+# Task 1: ArgoCD Application exists for Milvus
+# Task 2: vectordb-milvus-standalone Deployment is ready
+# Task 3: vectordb-etcd StatefulSet is ready
+
+- name: Module 02-04 Validation — Milvus Deployed
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ns: "{{ user }}"
+  tasks:
+
+    # ── Check 1: ArgoCD Application exists ─────────────────────────────────────
+    - name: Get ArgoCD Application for Milvus
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ k8s_kubeconfig | default(omit) }}"
+        validate_certs: false
+        api_version: argoproj.io/v1alpha1
+        kind: Application
+        name: "{{ user }}-milvus"
+        namespace: openshift-gitops
+      register: r_argo_app
+      ignore_errors: true
+
+    # ── Check 2: Milvus Deployment is ready ────────────────────────────────────
+    - name: Get vectordb-milvus-standalone Deployment
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ k8s_kubeconfig | default(omit) }}"
+        validate_certs: false
+        api_version: apps/v1
+        kind: Deployment
+        name: vectordb-milvus-standalone
+        namespace: "{{ ns }}"
+      register: r_milvus_deploy
+      ignore_errors: true
+
+    # ── Check 3: etcd StatefulSet is ready ─────────────────────────────────────
+    - name: Get vectordb-etcd StatefulSet
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ k8s_kubeconfig | default(omit) }}"
+        validate_certs: false
+        api_version: apps/v1
+        kind: StatefulSet
+        name: vectordb-etcd
+        namespace: "{{ ns }}"
+      register: r_etcd_sts
+      ignore_errors: true
+
+    # ── Build results ──────────────────────────────────────────────────────────
+    - name: Build task results
+      ansible.builtin.set_fact:
+        _task1_ok: >-
+          {{ r_argo_app.resources | default([]) | length > 0 }}
+        _task2_ok: >-
+          {{ (r_milvus_deploy.resources | default([]) | length > 0) and
+             (r_milvus_deploy.resources[0].status.readyReplicas | default(0) | int >= 1) }}
+        _task3_ok: >-
+          {{ (r_etcd_sts.resources | default([]) | length > 0) and
+             (r_etcd_sts.resources[0].status.readyReplicas | default(0) | int >= 1) }}
+
+    # ── Validate ───────────────────────────────────────────────────────────────
+    - name: Validate all tasks
+      validation_check:
+        check: "{{ _task1_ok and _task2_ok and _task3_ok }}"
+        pass_msg: |
+          ✅ Task 1: ArgoCD Application {{ user }}-milvus exists
+          ✅ Task 2: vectordb-milvus-standalone deployment is running (1/1)
+          ✅ Task 3: vectordb-etcd StatefulSet is running (1/1)
+        error_msg: |
+          {{ '✅' if _task1_ok else '❌' }} Task 1: {{ 'ArgoCD Application exists' if _task1_ok else 'ArgoCD Application ' + user + '-milvus not found — paste the Milvus ArgoCD manifest in Import YAML (+) and click Create' }}
+          {{ '✅' if _task2_ok else '❌' }} Task 2: {{ 'Milvus standalone running' if _task2_ok else 'vectordb-milvus-standalone not ready — wait 2-3 minutes for ArgoCD to sync and pull container images' }}
+          {{ '✅' if _task3_ok else '❌' }} Task 3: {{ 'etcd running' if _task3_ok else 'vectordb-etcd not ready — wait for ArgoCD sync' }}

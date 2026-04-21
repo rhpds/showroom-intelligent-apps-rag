@@ -151,6 +151,13 @@ image::02/pipeline-upload.png[The pipeline upload dialog with the file selected]
 
 Once imported, you are ready to trigger the event-driven flow in the next section.
 
+++++
+<div class="solve-button-placeholder" data-module="module-03-01"></div>
+++++
+++++
+<div class="validate-button-placeholder" data-module="module-03-01"></div>
+++++
+
 == Summary
 
 * [x] Connected to the {rhoai} Dashboard, the {ocp} Console, and the cluster command line via the standalone Terminal

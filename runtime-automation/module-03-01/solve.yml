@@ -1,0 +1,67 @@
+---
+# SOLVE — 3.1 Setup & Pipeline Import (Event-Driven)
+# Task 1: Import simple-pdf-processing-pipeline via KFP API
+#
+# The student downloads simple-pdf-processing-pipeline.yaml from
+# the workbench and imports it via the RHOAI Dashboard UI.
+# The pipeline name must match exactly for the event trigger to find it.
+#
+# Uses workbench pod to curl DSPA internal service (DSPA pod lacks tar).
+
+- name: Module 03-01 Solve — Event-Driven Pipeline Import
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ns: "{{ user }}"
+    pipeline_slug: "simple-pdf-processing-pipeline"
+    pipeline_file: "/opt/app-root/src/hello-chris-rag-pipeline/lab-content/2.1/simple-pdf-processing-pipeline.yaml"
+    dspa_svc: "https://ds-pipeline-dspa.{{ user }}.svc.cluster.local:8443"
+  tasks:
+
+    # ── Task 1: Get SA token ───────────────────────────────────────────────────
+    - name: Create SA token for pipeline access
+      ansible.builtin.shell: >-
+        oc --kubeconfig={{ k8s_kubeconfig }}
+        create token pipeline -n {{ ns }}
+      register: r_token
+
+    # ── Task 2: Check if pipeline already exists ───────────────────────────────
+    - name: Check if pipeline already imported
+      ansible.builtin.shell: >-
+        oc --kubeconfig={{ k8s_kubeconfig }}
+        exec my-workbench-0 -n {{ ns }}
+        -c my-workbench --
+        curl -sk -H "Authorization: Bearer {{ r_token.stdout }}"
+        {{ dspa_svc }}/apis/v2beta1/pipelines
+      register: r_pipelines
+
+    - name: Check if PDF pipeline exists
+      ansible.builtin.set_fact:
+        _pipeline_exists: "{{ pipeline_slug in r_pipelines.stdout }}"
+
+    # ── Task 3: Upload pipeline from workbench pod ─────────────────────────────
+    - name: Upload pipeline via KFP API from workbench pod
+      ansible.builtin.shell: >-
+        oc --kubeconfig={{ k8s_kubeconfig }}
+        exec my-workbench-0 -n {{ ns }}
+        -c my-workbench --
+        curl -sk
+        -H "Authorization: Bearer {{ r_token.stdout }}"
+        -F "uploadfile=@{{ pipeline_file }};type=application/x-yaml"
+        "{{ dspa_svc }}/apis/v2beta1/pipelines/upload?name={{ pipeline_slug }}"
+      register: r_upload
+      when: not _pipeline_exists
+
+    - name: Verify upload succeeded
+      ansible.builtin.assert:
+        that:
+          - "'pipeline_id' in r_upload.stdout"
+        fail_msg: "Pipeline upload failed: {{ r_upload.stdout }}"
+      when: not _pipeline_exists
+
+    # ── Report ─────────────────────────────────────────────────────────────────
+    - name: Report solve status
+      ansible.builtin.debug:
+        msg: |
+          Pipeline "{{ pipeline_slug }}": {{ 'already exists (skipped)' if _pipeline_exists else ('uploaded — ' + (r_upload.stdout | default(''))[:100]) }}

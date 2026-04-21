@@ -1,0 +1,126 @@
+---
+# SOLVE — 2.6 Creating and Configuring a Pipeline Run
+# Task 1: Create a pipeline run via KFP API with correct parameters
+# Task 2: Wait for pipeline run to complete (also covers 2.7 monitoring)
+#
+# Uses the workbench pod to curl the DSPA internal service.
+
+- name: Module 02-06 Solve — Create Pipeline Run
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ns: "{{ user }}"
+    dspa_svc: "https://ds-pipeline-dspa.{{ user }}.svc.cluster.local:8443"
+  tasks:
+
+    # ── Task 1: Get SA token ───────────────────────────────────────────────────
+    - name: Create SA token for pipeline access
+      ansible.builtin.shell: >-
+        oc --kubeconfig={{ k8s_kubeconfig }}
+        create token pipeline -n {{ ns }}
+      register: r_token
+
+    # ── Task 2: Get pipeline list and find the ServiceNow pipeline ─────────────
+    - name: Get pipeline list from DSPA
+      ansible.builtin.shell: >-
+        oc --kubeconfig={{ k8s_kubeconfig }}
+        exec my-workbench-0 -n {{ ns }}
+        -c my-workbench --
+        curl -sk -H "Authorization: Bearer {{ r_token.stdout }}"
+        {{ dspa_svc }}/apis/v2beta1/pipelines
+      register: r_pipelines
+
+    - name: Extract pipeline ID
+      ansible.builtin.set_fact:
+        _pipeline_id: >-
+          {{ (r_pipelines.stdout | from_json).pipelines |
+             map(attribute='pipeline_id') | first }}
+
+    # ── Task 3: Get pipeline version ID ────────────────────────────────────────
+    - name: Get pipeline versions
+      ansible.builtin.shell: >-
+        oc --kubeconfig={{ k8s_kubeconfig }}
+        exec my-workbench-0 -n {{ ns }}
+        -c my-workbench --
+        curl -sk -H "Authorization: Bearer {{ r_token.stdout }}"
+        "{{ dspa_svc }}/apis/v2beta1/pipelines/{{ _pipeline_id | trim }}/versions"
+      register: r_versions
+
+    - name: Extract version ID
+      ansible.builtin.set_fact:
+        _version_id: >-
+          {{ (r_versions.stdout | from_json).pipeline_versions[0].pipeline_version_id }}
+
+    # ── Task 4: Check if a successful run already exists ───────────────────────
+    - name: Check for existing pipeline runs
+      ansible.builtin.shell: >-
+        oc --kubeconfig={{ k8s_kubeconfig }}
+        exec my-workbench-0 -n {{ ns }}
+        -c my-workbench --
+        curl -sk -H "Authorization: Bearer {{ r_token.stdout }}"
+        "{{ dspa_svc }}/apis/v2beta1/runs?page_size=10"
+      register: r_runs
+
+    - name: Check for existing successful run
+      ansible.builtin.set_fact:
+        _has_succeeded_run: >-
+          {{ (r_runs.stdout | from_json).runs | default([]) |
+             selectattr('state', 'defined') |
+             selectattr('state', 'equalto', 'SUCCEEDED') |
+             list | length > 0 }}
+
+    # ── Task 5: Create pipeline run ────────────────────────────────────────────
+    - name: Create pipeline run via KFP API
+      ansible.builtin.shell: >-
+        oc --kubeconfig={{ k8s_kubeconfig }}
+        exec my-workbench-0 -n {{ ns }}
+        -c my-workbench --
+        curl -sk -X POST
+        -H "Authorization: Bearer {{ r_token.stdout }}"
+        -H "Content-Type: application/json"
+        -d '{
+          "display_name": "Simple API to RAG pipeline",
+          "description": "Automated pipeline run",
+          "pipeline_version_reference": {
+            "pipeline_id": "{{ _pipeline_id | trim }}",
+            "pipeline_version_id": "{{ _version_id | trim }}"
+          },
+          "runtime_config": {
+            "parameters": {
+              "api_endpoint": "http://mock-servicenow-api-svc.{{ ns }}.svc.cluster.local:8080/api/v1/incidents?state=closed",
+              "collection_name": "servicenow_incidents",
+              "milvus_host": "vectordb-milvus.{{ ns }}.svc.cluster.local",
+              "milvus_port": "19530"
+            }
+          }
+        }'
+        {{ dspa_svc }}/apis/v2beta1/runs
+      register: r_create_run
+      when: not _has_succeeded_run
+
+    - name: Extract run ID
+      ansible.builtin.set_fact:
+        _run_id: "{{ (r_create_run.stdout | from_json).run_id }}"
+      when: not _has_succeeded_run
+
+    # ── Task 6: Wait for pipeline run to complete ──────────────────────────────
+    - name: Wait for pipeline run to succeed
+      ansible.builtin.shell: >-
+        oc --kubeconfig={{ k8s_kubeconfig }}
+        exec my-workbench-0 -n {{ ns }}
+        -c my-workbench --
+        curl -sk -H "Authorization: Bearer {{ r_token.stdout }}"
+        "{{ dspa_svc }}/apis/v2beta1/runs/{{ _run_id | trim }}"
+      register: r_run_status
+      until: >-
+        (r_run_status.stdout | from_json).state | default('') in ['SUCCEEDED', 'FAILED', 'CANCELED']
+      retries: 60
+      delay: 10
+      when: not _has_succeeded_run
+
+    # ── Report ─────────────────────────────────────────────────────────────────
+    - name: Report solve status
+      ansible.builtin.debug:
+        msg: |
+          Pipeline run: {{ 'already succeeded (skipped)' if _has_succeeded_run else ((r_run_status.stdout | from_json).state | default('unknown')) }}

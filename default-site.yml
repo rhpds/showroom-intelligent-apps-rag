@@ -28,6 +28,7 @@ antora:
     - id: rag-export
       require: ./content/lib/rag-export.js
       enabled: true
+    - require: ./content/lib/inject-buttons.js
 
 output:
   dir: ./www

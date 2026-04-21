@@ -57,6 +57,13 @@ image::03/create-run-form-filled.png[The completed pipeline run configuration fo
 
 You will be automatically redirected to a real-time graph view of your running pipeline. Let's explore how to monitor it in the next section.
 
+++++
+<div class="solve-button-placeholder" data-module="module-02-06"></div>
+++++
+++++
+<div class="validate-button-placeholder" data-module="module-02-06"></div>
+++++
+
 == Summary
 
 * [x] Configured runtime parameters (`api_endpoint`, `milvus_host`, `milvus_port`, `collection_name`) that wire the pipeline to the services in your namespace

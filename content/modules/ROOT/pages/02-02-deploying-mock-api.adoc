@@ -98,6 +98,13 @@ Refresh the page after 30 seconds.
 
 With the mock API running, you are ready to move on to the next step.
 
+++++
+<div class="solve-button-placeholder" data-module="module-02-02"></div>
+++++
+++++
+<div class="validate-button-placeholder" data-module="module-02-02"></div>
+++++
+
 == Summary
 
 * [x] Created an ArgoCD `Application` CR pointing at a Kustomize overlay — ArgoCD pulls the manifests from Git and reconciles continuously

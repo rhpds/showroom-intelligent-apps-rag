@@ -1,0 +1,65 @@
+---
+# SOLVE — 2.2 Deploying the Mock ServiceNow API
+# Task 1: Create ArgoCD Application for mock-api
+# Task 2: Wait for mock-servicenow-api pod to be ready
+
+- name: Module 02-02 Solve — Deploy Mock API
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ns: "{{ user }}"
+  tasks:
+
+    # ── Task 1: Create ArgoCD Application ──────────────────────────────────────
+    - name: Apply ArgoCD Application for mock-api
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig | default(omit) }}"
+        validate_certs: false
+        state: present
+        definition:
+          apiVersion: argoproj.io/v1alpha1
+          kind: Application
+          metadata:
+            name: "{{ user }}-mock-api"
+            namespace: openshift-gitops
+          spec:
+            project: default
+            source:
+              repoURL: 'https://github.com/cnuland/hello-chris-rag-pipeline.git'
+              path: apps/api/.k8s
+              targetRevision: main
+              kustomize: {}
+            destination:
+              server: https://kubernetes.default.svc
+              namespace: "{{ ns }}"
+            syncPolicy:
+              automated:
+                prune: true
+                selfHeal: true
+              syncOptions:
+                - CreateNamespace=true
+                - ServerSideApply=true
+
+    # ── Task 2: Wait for mock-servicenow-api deployment to be ready ────────────
+    - name: Wait for mock-servicenow-api deployment to be ready
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ k8s_kubeconfig | default(omit) }}"
+        validate_certs: false
+        api_version: apps/v1
+        kind: Deployment
+        name: mock-servicenow-api
+        namespace: "{{ ns }}"
+      register: r_mock_api_deploy
+      until: >-
+        r_mock_api_deploy.resources | length > 0 and
+        (r_mock_api_deploy.resources[0].status.readyReplicas | default(0) | int) >= 1
+      retries: 36
+      delay: 5
+
+    # ── Report ─────────────────────────────────────────────────────────────────
+    - name: Report solve status
+      ansible.builtin.debug:
+        msg: |
+          ArgoCD Application {{ user }}-mock-api: created
+          mock-servicenow-api deployment: {{ 'ready' if (r_mock_api_deploy.resources | length > 0 and r_mock_api_deploy.resources[0].status.readyReplicas | default(0) | int >= 1) else 'NOT ready' }}

@@ -1,0 +1,43 @@
+---
+# SOLVE — 2.3 Verifying the Mock API
+# Task 1: Health check via oc exec
+# Task 2: Incidents endpoint via oc exec
+
+- name: Module 02-03 Solve — Verify Mock API
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ns: "{{ user }}"
+  tasks:
+
+    # ── Task 1: Health check ───────────────────────────────────────────────────
+    - name: "Health check: curl mock API health endpoint"
+      ansible.builtin.shell: >-
+        oc --kubeconfig={{ k8s_kubeconfig }}
+        exec deploy/mock-servicenow-api -n {{ ns }}
+        -- curl -s http://localhost:8080/api/v1/health
+      register: r_health
+
+    - name: Display health check result
+      ansible.builtin.debug:
+        msg: "Health: {{ r_health.stdout }}"
+
+    # ── Task 2: Fetch incidents ────────────────────────────────────────────────
+    - name: "Incidents: curl mock API incidents endpoint"
+      ansible.builtin.shell: >-
+        oc --kubeconfig={{ k8s_kubeconfig }}
+        exec deploy/mock-servicenow-api -n {{ ns }}
+        -- curl -s 'http://localhost:8080/api/v1/incidents?state=closed&limit=2'
+      register: r_incidents
+
+    - name: Display incidents result
+      ansible.builtin.debug:
+        msg: "Incidents response (first 200 chars): {{ r_incidents.stdout[:200] }}"
+
+    # ── Report ─────────────────────────────────────────────────────────────────
+    - name: Report solve status
+      ansible.builtin.debug:
+        msg: |
+          Health check: {{ 'ok' if '"status":"UP"' in r_health.stdout else 'FAILED' }}
+          Incidents fetch: {{ 'ok' if '"result"' in r_incidents.stdout else 'FAILED' }}

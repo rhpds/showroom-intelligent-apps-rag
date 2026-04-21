@@ -177,6 +177,13 @@ image::02/run-in-detail.png[The pipeline run graph showing the download and proc
 The first pipeline run may take a few minutes as the Docling container image is large. Subsequent runs will be faster since the image is cached on each node.
 ====
 
+++++
+<div class="solve-button-placeholder" data-module="module-03-02"></div>
+++++
+++++
+<div class="validate-button-placeholder" data-module="module-03-02"></div>
+++++
+
 == Summary
 
 * [x] Traced a CloudEvent end-to-end: MinIO webhook -> Kafka topic -> Knative Broker/Trigger -> serverless function -> Kubeflow Pipeline run
