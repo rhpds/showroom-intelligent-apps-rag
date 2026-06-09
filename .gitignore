@@ -54,4 +54,5 @@ frontend/out/
 config/assistant-config-local.yaml
 
 # Vector store data
-.llama/
+.ogx/
+build-context-vectors/
