@@ -28,10 +28,10 @@ llm:
   # Supported engines: openai, vllm, ollama
   engines: ["vllm"]
 
-  # LlamaStack will use this model for generating responses
+  # OGX will use this model for generating responses
   model: "vllm/qwen3-14b-gaudi"
 
-  # HTTP timeout in seconds for LlamaStack client requests
+  # HTTP timeout in seconds for OGX client requests
   timeout: 600
 
   # vLLM-specific configuration (only used when vllm is in engines list)
