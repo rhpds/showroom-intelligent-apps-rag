@@ -323,8 +323,8 @@ const components: Options['components'] = {
   pre: ({ node, className, children }) => {
     let language = 'javascript';
 
-    if (typeof node?.properties?.className === 'string') {
-      language = node.properties.className.replace('language-', '');
+    if (typeof className === 'string') {
+      language = className.replace('language-', '');
     }
 
     // Extract code content from children safely
